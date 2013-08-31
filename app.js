@@ -14,16 +14,31 @@ var findWord = function(index,dictionary) {
 	return entry;
 };
 
-var findClosestMatch = function (word,dictionary) {
-	var loc = dictionary.indexOf(word);
-	if (loc) {
-		var word = findWord(loc,dictionary);
-		console.log(word);
+var spellCheck = function (word,dictionary) {
+	if (wordCorrect(word,dictionary)) {
+		console.log('ok');
 	}
 	else {
-		console.log('fail');
+		var cm = findClosestMatch(word,dictionary);
+		console.log('did you mean ' + cm + '?');
 	}
 };
 
-findClosestMatch(inputWord,dict);
+var wordCorrect = function (word,dictionary) {
+	var loc = dictionary.indexOf(word);
+	var ret = false;
+	if (loc) {
+		var entryWord = findWord(loc,dictionary);
+		if (word === entryWord) {
+			ret = true;
+		}
+	}
+	return ret;
+};
+
+var findClosestMatch = function (word,dictionary) { // stub
+	return "cats";
+};
+
+spellCheck(inputWord,dict);
 
