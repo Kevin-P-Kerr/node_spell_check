@@ -20,7 +20,7 @@ var spellCheck = function (word,dictionary) {
 	}
 	else {
 		var cm = findClosestMatch(word,dictionary);
-		console.log('did you mean ' + cm + '?');
+		console.log(cm);
 	}
 };
 
@@ -43,14 +43,41 @@ var findClosestMatch = function (word,dictionary) {
 			if (i < 0 ) {
 				return false;
 			}
-			var reg = new RegExp(word.slice(0,i), "g");
+			var reg = new RegExp(word.slice(0,i));
+			reg.length = word.slice(0,i).length;
 			i--;
 			return reg;
 		};
-	};
+	})();
+	getRecursMatch = function (reg) {
+		var tmpDict = dictionary;
+		var match;
+		var ret = [];
+		var peek;
+		var currentOffset = 0;
+		var Entry = function (m,i,off) {
+			this.match = m;
+			this.index = i;
+			this.offset = off;
+		};
+		while (true) {
+			match = tmpDict.match(reg);
+			if (!match) {
+				break;
+			}
+			ret.push(new Entry(match[0],match.index,currentOffset));
+			currentOffset += match.index;
+			peek = match.index + reg.length;
+			tmpDict = tmpDict.slice(peek,tmpDict.length);
+		}
+		if (!ret.length) {
+			return false;
+		}
+		return ret;
+	};		
 	var fm = function () {
 		var root = createRoot();
-		var wm = dictionary.match(root);
+		var wm = getRecursMatch(root);
 		if (wm) {
 			return wm;
 		}
