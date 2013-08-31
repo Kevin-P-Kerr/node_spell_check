@@ -36,9 +36,31 @@ var wordCorrect = function (word,dictionary) {
 	return ret;
 };
 
-var findClosestMatch = function (word,dictionary) { // stub
-	return "cats";
+var findClosestMatch = function (word,dictionary) {
+	var createRoot = (function () {
+		var i = word.length-1;
+		return function () {
+			if (i < 0 ) {
+				return false;
+			}
+			var reg = new RegExp(word.slice(0,i), "g");
+			i--;
+			return reg;
+		};
+	};
+	var fm = function () {
+		var root = createRoot();
+		var wm = dictionary.match(root);
+		if (wm) {
+			return wm;
+		}
+		else {
+			return fm();
+		}
+	}
+	return fm();
 };
+	
 
 spellCheck(inputWord,dict);
 
