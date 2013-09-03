@@ -11,6 +11,8 @@ var findWord = function(index,dictionary) {
 		entry += dictionary[index];
 		index++;
 	}
+	console.log('ENTRY');
+	console.log(entry);
 	return entry;
 };
 
@@ -19,8 +21,14 @@ var spellCheck = function (word,dictionary) {
 		console.log('ok');
 	}
 	else {
+		console.log('word: ' + inputWord + ' not found.');
 		var cm = findClosestMatch(word,dictionary);
-		console.log(cm);
+		if (cm) {	
+			console.log('did you mean ' +cm+' ?');
+		}
+		else {
+			console.log('no close matches found');
+		}
 	}
 };
 
@@ -49,42 +57,46 @@ var findClosestMatch = function (word,dictionary) {
 			return reg;
 		};
 	})();
-	getRecursMatch = function (reg) {
+	var getRecursMatch = function (reg) {
 		var tmpDict = dictionary;
 		var match;
 		var ret = [];
 		var peek;
 		var currentOffset = 0;
-		var Entry = function (m,i,off) {
-			this.match = m;
-			this.index = i;
-			this.offset = off;
+		var Entry = function (word) {
+			this.word = word;
 		};
+		var tmpWord;
 		while (true) {
 			match = tmpDict.match(reg);
 			if (!match) {
 				break;
 			}
-			ret.push(new Entry(match[0],match.index,currentOffset));
+			tmpWord = findWord(match.index,tmpDict);
+			ret.push(tmpWord);
 			currentOffset += match.index;
 			peek = match.index + reg.length;
 			tmpDict = tmpDict.slice(peek,tmpDict.length);
 		}
-		if (!ret.length) {
-			return false;
-		}
 		return ret;
-	};		
+	};
+	var fcm = function (matches) {
+		var inputLen = inputWord.length;
+		var  i = 0,
+			ii = matches.length
+		;
+		for (; i<ii; i++) {
+			if (matches[i].length === inputLen) {
+				return matches[i];
+			}
+		}
+		return false;
+	};
 	var fm = function () {
 		var root = createRoot();
 		var wm = getRecursMatch(root);
-		if (wm) {
-			return wm;
-		}
-		else {
-			return fm();
-		}
-	}
+		return fcm(wm);
+	};
 	return fm();
 };
 	
