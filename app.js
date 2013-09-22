@@ -5,101 +5,110 @@ var dict = fs.readFileSync(pathToDict).toString().toLowerCase();
 
 var inputWord = process.argv[2];
 
-var findWord = function(index,dictionary) {
-	var entry = '';
-	while(dictionary[index] !== '\n') {
-		entry += dictionary[index];
-		index++;
-	}
-	console.log('ENTRY');
-	console.log(entry);
-	return entry;
-};
-
-var spellCheck = function (word,dictionary) {
-	if (wordCorrect(word,dictionary)) {
-		console.log('ok');
-	}
-	else {
-		console.log('word: ' + inputWord + ' not found.');
-		var cm = findClosestMatch(word,dictionary);
-		if (cm) {	
-			console.log('did you mean ' +cm+' ?');
+var formatDict = function (dictString) {
+	// take a string, and split on the new line to get an array of entries
+	// then put the entries into a dictionary object, sorted alphabetically
+	// and then by length of world
+	var dictArr = dictString.split('\n');
+	var dictionary = {};
+	var alphabet = 'abcdefghijklmnopqrstuvwxyz'.split('');
+	alphabet.forEach(function (letter) {
+		dictionary[letter] = {};
+	});
+	// for now, we only care about ascii letter--if they have diacritic marks we ignore them
+	dictArr.forEach(function (entry) {
+		var firstLetter = entry[0];
+		if (! (firstLetter in dictionary)) {
+			return;
+		}
+		var len = entry.length;
+		if (!dictionary[firstLetter][len]) {
+			dictionary[firstLetter][len] = [entry];
 		}
 		else {
-			console.log('no close matches found');
+			dictionary[firstLetter][len].push(entry);
 		}
-	}
+	});
+	return dictionary;
 };
 
-var wordCorrect = function (word,dictionary) {
-	var loc = dictionary.indexOf(word);
-	var ret = false;
-	if (loc) {
-		var entryWord = findWord(loc,dictionary);
-		if (word === entryWord) {
-			ret = true;
-		}
-	}
-	return ret;
-};
+var App = function (dictString) {
+	this.dictionary = formatDict(dictString);
 
-var findClosestMatch = function (word,dictionary) {
-	var createRoot = (function () {
-		var i = word.length-1;
-		return function () {
-			if (i < 0 ) {
-				return false;
+	this.spellCheck = function (word) {
+		if (this.wordCorrect(word)) {
+			console.log('ok');
+		}
+		else {
+			console.log('word: ' + word + ' not found.');
+			var cm = this.findClosestMatch(word);
+			if (cm) {	
+				console.log('did you mean ' +cm+' ?');
 			}
-			var reg = new RegExp(word.slice(0,i));
-			reg.length = word.slice(0,i).length;
-			i--;
-			return reg;
-		};
-	})();
-	var getRecursMatch = function (reg) {
-		var tmpDict = dictionary;
-		var match;
-		var ret = [];
-		var peek;
-		var currentOffset = 0;
-		var Entry = function (word) {
-			this.word = word;
-		};
-		var tmpWord;
-		while (true) {
-			match = tmpDict.match(reg);
-			if (!match) {
-				break;
+			else {
+				console.log('no close matches found');
 			}
-			tmpWord = findWord(match.index,tmpDict);
-			ret.push(tmpWord);
-			currentOffset += match.index;
-			peek = match.index + reg.length;
-			tmpDict = tmpDict.slice(peek,tmpDict.length);
+		}
+	};
+
+	this.findClosestMatch = function (word) {
+		var findScore = function (candidate) {
+			var score = 0;
+			var c_as_w = candidate;
+			candidate = candidate.split('');
+			candidate.forEach(function (letter,index) {
+				if (word[index] === letter) {
+					score++;
+				}
+			});
+			return {'score':score,word:c_as_w};
+		}
+		var sort = function (a,b) {
+			if (a.score > b.score) {
+				return -1;
+			}
+			return 1;
+		};
+		var findClosest = function (subsection) {
+			var scores = [];
+			subsection.forEach(function (candidate)	{
+				scores.push(findScore(candidate));
+			});
+			scores.sort(sort);
+			return scores[0].word;
+		};
+		var firstLetter = word[0];
+		var len = word.length;
+		var section = this.dictionary[firstLetter];
+		var ret = false;
+		if (section) {
+			var subsection = section[len];
+			if (subsection) {
+				ret = findClosest(subsection);
+			}
 		}
 		return ret;
 	};
-	var fcm = function (matches) {
-		var inputLen = inputWord.length;
-		var  i = 0,
-			ii = matches.length
-		;
-		for (; i<ii; i++) {
-			if (matches[i].length === inputLen) {
-				return matches[i];
+	
+	this.wordCorrect = function (word) {
+		var ret = false;
+		var len = word.length;
+		var firstLetter = word[0];
+		var section = this.dictionary[firstLetter];
+		if (section) {
+			var subsection = section[len];
+			if (subsection) {
+				subsection.forEach(function (entry) {
+					if (entry === word) {
+						ret = true;
+					}
+				});
 			}
 		}
-		return false;
+		return ret;
 	};
-	var fm = function () {
-		var root = createRoot();
-		var wm = getRecursMatch(root);
-		return fcm(wm);
-	};
-	return fm();
+
 };
-	
 
-spellCheck(inputWord,dict);
-
+var app = new App(dict);
+app.spellCheck(inputWord);
